@@ -4,6 +4,7 @@ let mysql = require('../config').pool;
 let formidable = require('formidable');
 let nodemailer = require('nodemailer');
 let mailer = require('../config').config;
+let RateLimit = require('express-rate-limit');
 
 /**
  * Kevin Mocorro
@@ -11,8 +12,15 @@ let mailer = require('../config').config;
  * 15:33 - 16:14
  */
 
-module.exports = function(app){
+let limiter = new RateLimit({
+    windowMs: 30*60*1000,
+    max: 1,
+    delayMs: 3*1000,
+    message: "Too many accounts created from this IP, please try again after 30 minutes."
+});
 
+module.exports = function(app){
+    app.use(limiter);
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: true}));
 
