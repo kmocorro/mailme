@@ -16,7 +16,7 @@ let limiter = new RateLimit({
     windowMs: 30*60*1000,
     max: 1,
     delayMs: 3*1000,
-    message: "Too many accounts created from this IP, please try again after 30 minutes."
+    message: "Too many requests, please try again after 30 minutes."
 });
 
 module.exports = function(app){
