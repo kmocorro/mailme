@@ -107,13 +107,13 @@ module.exports = function(app){
         let poly_query = req.query;
 
         if(poly_query){
-            
-            let poly_filetype = '.txt';
-            let poly_path = './public/poly/';
 
             let poly_credentials = {
-                filename: poly_query.filename + poly_filetype,
+                filename: poly_query.filename,
+                group_name: poly_query.group
             };
+
+            let poly_attachments = './public/poly/' + poly_credentials.filename;
 
             function mailPoly(){
                 return new Promise(function(resolve, reject){
@@ -122,7 +122,8 @@ module.exports = function(app){
                         if(err){return reject(err)};
 
                         connection.query({
-                            sql: 'SELECT * FROM tbl_polyplot_recipients WHERE isActive = 1'
+                            sql: 'SELECT * FROM tbl_dataplot_recipients WHERE isActive = 1 AND group_name = ?',
+                            values: [poly_credentials.group_name]
                         },  function(err, results){
                             if(err){return reject(err)};
 
@@ -130,28 +131,33 @@ module.exports = function(app){
 
                                 let recipients = [];
 
-                                for(let i=0; i<results.length;i++){
+                                for(let i=0; i<results.length;i++){ // loop through recipients
                                     recipients.push(
                                         results[i].email
                                     );
                                 }
-                                
-                                let mail_settings = {
-                                    from: '"Automailer" <' +  mailer.mail.auth.user + '>',
-                                    to: recipients,
-                                    subject: 'Poly Plot Notification',
-                                    attachments:{
-                                        filename: poly_credentials.filename,
-                                        path: poly_path + poly_credentials.filename
-                                    },
-                                    html: '<p>Dear Engineers, <br><br> See attached file for Poly Plot. </p>'
-                                }
 
-                                transporter.sendMail(mail_settings, function(err, info){
-                                    if(err){return reject(err)};
-                                    resolve();
-                                });
+                                if(fs.existsSync(poly_attachments)){ // if File exists.
+                                    
+                                    let mail_settings = {
+                                        from: '"Automailer" <' +  mailer.mail.auth.user + '>',
+                                        to: recipients,
+                                        subject: 'Poly Plot Notification',
+                                        attachments:{
+                                            filename: poly_credentials.filename,
+                                            path: poly_attachments
+                                        },
+                                        html: '<p>Dear Engineers, <br><br> See attached file for Poly Plot. </p>'
+                                    }
     
+                                    transporter.sendMail(mail_settings, function(err, info){
+                                        if(err){return reject(err)};
+                                        resolve();
+                                    });
+
+                                } else {
+                                    reject('File does not exists.');
+                                }
 
                             } else {
                                 return reject('No recipients found.');
@@ -166,11 +172,82 @@ module.exports = function(app){
                 });
             }
 
-            mailPoly().then(function(){
-                res.send('Notification successfully sent.');
-            },  function(err){
-                res.send(err);
-            });
+            function mailPolyToAll(){
+                return new Promise(function(resolve, reject){
+
+                    mysql.getConnection(function(err, connection){
+                        if(err){return reject(err)};
+
+                        connection.query({
+                            sql: 'SELECT * FROM tbl_dataplot_recipients WHERE isActive = 1',
+                            values: [poly_credentials.group_name]
+                        },  function(err, results){
+                            if(err){return reject(err)};
+
+                            if(typeof results[0] !== 'undefined' && results[0] !== null && results.length > 0){
+
+                                let recipients = [];
+
+                                for(let i=0; i<results.length;i++){ // loop through recipients
+                                    recipients.push(
+                                        results[i].email
+                                    );
+                                }
+
+                                if(fs.existsSync(poly_attachments)){ // if File exists.
+                                    
+                                    let mail_settings = {
+                                        from: '"Automailer" <' +  mailer.mail.auth.user + '>',
+                                        to: recipients,
+                                        subject: 'Poly Plot Notification',
+                                        attachments:{
+                                            filename: poly_credentials.filename,
+                                            path: poly_attachments
+                                        },
+                                        html: '<p>Dear Engineers, <br><br> See attached file for Poly Plot. </p>'
+                                    }
+    
+                                    transporter.sendMail(mail_settings, function(err, info){
+                                        if(err){return reject(err)};
+                                        resolve();
+                                    });
+
+                                } else {
+                                    reject('File does not exists.');
+                                }
+
+                            } else {
+                                return reject('No recipients found.');
+                            }
+
+                        });
+
+                        connection.release();
+
+                    });
+
+                });
+            }
+
+            if(poly_credentials.group_name == 'polyteam'){
+
+                mailPoly().then(function(){
+                    res.send('Notification successfully sent to polyteam.');
+                },  function(err){
+                    res.send(err);
+                });
+
+            } else if(poly_credentials.group_name == 'allteam'){
+
+                mailPolyToAll().then(function(){
+                    res.send('Notification successfully sent to allteam.')
+                },  function(err){
+                    res.send(err);
+                });
+
+            } else {
+                res.send('Wrong team.');
+            }
 
         }
 
