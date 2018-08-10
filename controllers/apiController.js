@@ -101,21 +101,22 @@ module.exports = function(app){
     });
 
     /**
-     * GET API for PolyPlot data
+     * GET API for dataplot
      */
-    app.get('/polyplot', function(req, res){
-        let poly_query = req.query;
+    app.get('/dataplot', function(req, res){
+        let dataplot_query = req.query;
 
-        if(poly_query){
+        if(dataplot_query){
 
-            let poly_credentials = {
-                filename: poly_query.filename,
-                group_name: poly_query.group
+            let dataplot_credentials = {
+                type: dataplot_query.type, // polyplot || ndepplot || pdriveplot
+                filename: dataplot_query.filename,
+                group_name: dataplot_query.to
             };
 
-            let poly_attachments = './public/poly/' + poly_credentials.filename;
+            let dataplot_attachments = './public/' + dataplot_credentials.type + '/' + dataplot_credentials.filename;
 
-            function mailPoly(){
+            function mailPoly(){ // for polyteam only
                 return new Promise(function(resolve, reject){
 
                     mysql.getConnection(function(err, connection){
@@ -123,7 +124,7 @@ module.exports = function(app){
 
                         connection.query({
                             sql: 'SELECT * FROM tbl_dataplot_recipients WHERE isActive = 1 AND group_name = ?',
-                            values: [poly_credentials.group_name]
+                            values: [dataplot_credentials.group_name]
                         },  function(err, results){
                             if(err){return reject(err)};
 
@@ -137,15 +138,15 @@ module.exports = function(app){
                                     );
                                 }
 
-                                if(fs.existsSync(poly_attachments)){ // if File exists.
+                                if(fs.existsSync(dataplot_attachments)){ // if File exists.
                                     
                                     let mail_settings = {
                                         from: '"Automailer" <' +  mailer.mail.auth.user + '>',
                                         to: recipients,
                                         subject: 'Poly Plot Notification',
                                         attachments:{
-                                            filename: poly_credentials.filename,
-                                            path: poly_attachments
+                                            filename: dataplot_credentials.filename,
+                                            path: dataplot_attachments
                                         },
                                         html: '<p>Dear Engineers, <br><br> See attached file for Poly Plot. </p>'
                                     }
@@ -172,7 +173,13 @@ module.exports = function(app){
                 });
             }
 
-            function mailPolyToAll(){
+            function mailNdep(){ // for ndepteam only
+            }
+
+            function mailPdrive(){ // for pdrive only
+            }
+
+            function mailPolyToAll(){ // for allteam
                 return new Promise(function(resolve, reject){
 
                     mysql.getConnection(function(err, connection){
@@ -180,7 +187,7 @@ module.exports = function(app){
 
                         connection.query({
                             sql: 'SELECT * FROM tbl_dataplot_recipients WHERE isActive = 1',
-                            values: [poly_credentials.group_name]
+                            values: [dataplot_credentials.group_name]
                         },  function(err, results){
                             if(err){return reject(err)};
 
@@ -194,15 +201,15 @@ module.exports = function(app){
                                     );
                                 }
 
-                                if(fs.existsSync(poly_attachments)){ // if File exists.
+                                if(fs.existsSync(dataplot_attachments)){ // if File exists.
                                     
                                     let mail_settings = {
                                         from: '"Automailer" <' +  mailer.mail.auth.user + '>',
                                         to: recipients,
                                         subject: 'Poly Plot Notification',
                                         attachments:{
-                                            filename: poly_credentials.filename,
-                                            path: poly_attachments
+                                            filename: dataplot_credentials.filename,
+                                            path: dataplot_attachments
                                         },
                                         html: '<p>Dear Engineers, <br><br> See attached file for Poly Plot. </p>'
                                     }
@@ -229,28 +236,48 @@ module.exports = function(app){
                 });
             }
 
-            if(poly_credentials.group_name == 'polyteam'){
+            if(dataplot_credentials.type == 'polyplot'){
+                if(dataplot_credentials.group_name == 'polyteam'){
 
-                mailPoly().then(function(){
-                    res.send('Notification successfully sent to polyteam.');
-                },  function(err){
-                    res.send(err);
-                });
-
-            } else if(poly_credentials.group_name == 'allteam'){
-
-                mailPolyToAll().then(function(){
-                    res.send('Notification successfully sent to allteam.')
-                },  function(err){
-                    res.send(err);
-                });
-
+                    mailPoly().then(function(){
+                        res.send('Notification successfully sent to polyteam.');
+                    },  function(err){
+                        res.send(err);
+                    });
+    
+                } else if(dataplot_credentials.group_name == 'allteam'){
+    
+                    mailPolyToAll().then(function(){
+                        res.send('Notification successfully sent to allteam.')
+                    },  function(err){
+                        res.send(err);
+                    });
+    
+                } else {
+                    res.send('Wrong team.');
+                }
+            } else if(dataplot_credentials.type == 'ndepplot'){
+                // ndep plot function here
+            } else if(dataplot_credentials.type == 'pdriveplot'){
+                // pdrive plot function here
             } else {
-                res.send('Wrong team.');
+                res.send('Wrong type parameter.')
             }
 
+        } else {
+            res.send('No paramaters found.');
         }
 
     });
+
+    /**
+     * GET API for downtime 
+     */
+    app.get('/downtime', function(req, res){
+
+
+
+    });
+
 
 }
