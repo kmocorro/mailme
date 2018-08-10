@@ -8,4 +8,5 @@ app.use('/', express.static(__dirname + '/public'));
 app.set('view engine', 'ejs');
 
 apiController(app);
+console.log('Node running on ' + port + '...');
 app.listen(port);
