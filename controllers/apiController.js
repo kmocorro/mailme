@@ -101,10 +101,10 @@ module.exports = function(app){
     });
 
     /**
-     * GET API for dataplot
+     * POST API for dataplot
      */
-    app.get('/dataplot', function(req, res){
-        let dataplot_query = req.query;
+    app.post('/dataplot', function(req, res){
+        let dataplot_query = req.body;
 
         if(dataplot_query){
 
@@ -116,158 +116,114 @@ module.exports = function(app){
 
             let dataplot_attachments = './public/' + dataplot_credentials.type + '/' + dataplot_credentials.filename;
 
-            function mailPoly(){ // for polyteam only
+            function mailDataplot(){ // dataplot mailer 
                 return new Promise(function(resolve, reject){
 
                     mysql.getConnection(function(err, connection){
                         if(err){return reject(err)};
+                        
+                        if(dataplot_credentials.group_name == 'allteam'){
+                            connection.query({
+                                sql: 'SELECT * FROM tbl_dataplot_recipients WHERE isActive = 1'
+                            },  function(err, results){
+                                if(err){return reject(err)};
+    
+                                if(typeof results[0] !== 'undefined' && results[0] !== null && results.length > 0){
+                                    let recipients = [];
+    
+                                    for(let i=0; i<results.length;i++){ // loop through recipients
+                                        recipients.push(
+                                            results[i].email
+                                        );
+                                    }
 
-                        connection.query({
-                            sql: 'SELECT * FROM tbl_dataplot_recipients WHERE isActive = 1 AND group_name = ?',
-                            values: [dataplot_credentials.group_name]
-                        },  function(err, results){
-                            if(err){return reject(err)};
-
-                            if(typeof results[0] !== 'undefined' && results[0] !== null && results.length > 0){
-
-                                let recipients = [];
-
-                                for(let i=0; i<results.length;i++){ // loop through recipients
-                                    recipients.push(
-                                        results[i].email
-                                    );
-                                }
-
-                                if(fs.existsSync(dataplot_attachments)){ // if File exists.
-                                    
-                                    let mail_settings = {
-                                        from: '"Automailer" <' +  mailer.mail.auth.user + '>',
-                                        to: recipients,
-                                        subject: 'Poly Plot Notification',
-                                        attachments:{
-                                            filename: dataplot_credentials.filename,
-                                            path: dataplot_attachments
-                                        },
-                                        html: '<p>Dear Engineers, <br><br> See attached file for Poly Plot. </p>'
+                                    if(fs.existsSync(dataplot_attachments)){ // if File exists.
+                                        let mail_settings = {
+                                            from: '"Automailer" <' +  mailer.mail.auth.user + '>',
+                                            to: recipients,
+                                            subject: 'Data Plot Notification',
+                                            attachments:{
+                                                filename: dataplot_credentials.filename,
+                                                path: dataplot_attachments
+                                            },
+                                            html: '<p>Dear Engineers, <br><br> See attached file for Data Plot. </p>'
+                                        }
+        
+                                        transporter.sendMail(mail_settings, function(err, info){
+                                            if(err){return reject(err)};
+                                            resolve();
+                                        });
+    
+                                    } else {
+                                        reject('File does not exists.');
                                     }
     
-                                    transporter.sendMail(mail_settings, function(err, info){
-                                        if(err){return reject(err)};
-                                        resolve();
-                                    });
-
                                 } else {
-                                    reject('File does not exists.');
+                                    return reject('No recipients found.');
                                 }
-
-                            } else {
-                                return reject('No recipients found.');
-                            }
-
-                        });
+    
+                            });
+                        } else { // to other team.
+                            connection.query({
+                                sql: 'SELECT * FROM tbl_dataplot_recipients WHERE isActive = 1 AND group_name = ?',
+                                values: [dataplot_credentials.group_name]
+                            },  function(err, results){
+                                if(err){return reject(err)};
+    
+                                if(typeof results[0] !== 'undefined' && results[0] !== null && results.length > 0){
+                                    let recipients = [];
+    
+                                    for(let i=0; i<results.length;i++){ // loop through recipients
+                                        recipients.push(
+                                            results[i].email
+                                        );
+                                    }
+    
+                                    if(fs.existsSync(dataplot_attachments)){ // if File exists.
+                                        let mail_settings = {
+                                            from: '"Automailer" <' +  mailer.mail.auth.user + '>',
+                                            to: recipients,
+                                            subject: 'Data Plot Notification',
+                                            attachments:{
+                                                filename: dataplot_credentials.filename,
+                                                path: dataplot_attachments
+                                            },
+                                            html: '<p>Dear Engineers, <br><br> See attached file for Data Plot. </p>'
+                                        }
+        
+                                        transporter.sendMail(mail_settings, function(err, info){
+                                            if(err){return reject(err)};
+                                            resolve();
+                                        });
+    
+                                    } else {
+                                        reject('File does not exists.');
+                                    }
+    
+                                } else {
+                                    return reject('No recipients found.');
+                                }
+    
+                            });
+                        }
 
                         connection.release();
-
                     });
 
                 });
             }
 
-            function mailNdep(){ // for ndepteam only
-            }
-
-            function mailPdrive(){ // for pdrive only
-            }
-
-            function mailPolyToAll(){ // for allteam
-                return new Promise(function(resolve, reject){
-
-                    mysql.getConnection(function(err, connection){
-                        if(err){return reject(err)};
-
-                        connection.query({
-                            sql: 'SELECT * FROM tbl_dataplot_recipients WHERE isActive = 1',
-                            values: [dataplot_credentials.group_name]
-                        },  function(err, results){
-                            if(err){return reject(err)};
-
-                            if(typeof results[0] !== 'undefined' && results[0] !== null && results.length > 0){
-
-                                let recipients = [];
-
-                                for(let i=0; i<results.length;i++){ // loop through recipients
-                                    recipients.push(
-                                        results[i].email
-                                    );
-                                }
-
-                                if(fs.existsSync(dataplot_attachments)){ // if File exists.
-                                    
-                                    let mail_settings = {
-                                        from: '"Automailer" <' +  mailer.mail.auth.user + '>',
-                                        to: recipients,
-                                        subject: 'Poly Plot Notification',
-                                        attachments:{
-                                            filename: dataplot_credentials.filename,
-                                            path: dataplot_attachments
-                                        },
-                                        html: '<p>Dear Engineers, <br><br> See attached file for Poly Plot. </p>'
-                                    }
-    
-                                    transporter.sendMail(mail_settings, function(err, info){
-                                        if(err){return reject(err)};
-                                        resolve();
-                                    });
-
-                                } else {
-                                    reject('File does not exists.');
-                                }
-
-                            } else {
-                                return reject('No recipients found.');
-                            }
-
-                        });
-
-                        connection.release();
-
-                    });
-
-                });
-            }
-
-            if(dataplot_credentials.type == 'polyplot'){
-                if(dataplot_credentials.group_name == 'polyteam'){
-
-                    mailPoly().then(function(){
-                        res.send('Notification successfully sent to polyteam.');
-                    },  function(err){
-                        res.send(err);
-                    });
-    
-                } else if(dataplot_credentials.group_name == 'allteam'){
-    
-                    mailPolyToAll().then(function(){
-                        res.send('Notification successfully sent to allteam.')
-                    },  function(err){
-                        res.send(err);
-                    });
-    
-                } else {
-                    res.send('Wrong team.');
-                }
-            } else if(dataplot_credentials.type == 'ndepplot'){
-                // ndep plot function here
-            } else if(dataplot_credentials.type == 'pdriveplot'){
-                // pdrive plot function here
-            } else {
-                res.send('Wrong type parameter.')
-            }
-
+            
+            mailDataplot().then(function(){
+                res.send('Notification successfully sent to ' + dataplot_credentials.group_name +  '.');
+            },  function(err){
+                res.send(err);
+            });
+            
         } else {
             res.send('No paramaters found.');
         }
-
+        
     });
 
     /**
