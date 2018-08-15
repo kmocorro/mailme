@@ -107,11 +107,15 @@ module.exports = function(app){
         let dataplot_query = req.body;
 
         if(dataplot_query){
+            // replace '-' with ' '
+            let subj = dataplot_query.subject;
+            subj = subj.replace(/-/g, ' ');
 
             let dataplot_credentials = {
                 type: dataplot_query.type, // polyplot || ndepplot || pdriveplot
                 filename: dataplot_query.filename,
-                group_name: dataplot_query.to
+                group_name: dataplot_query.to,
+                subject: subj
             };
 
             let dataplot_attachments = './public/' + dataplot_credentials.type + '/' + dataplot_credentials.filename;
@@ -183,7 +187,7 @@ module.exports = function(app){
                                         let mail_settings = {
                                             from: '"Automailer" <' +  mailer.mail.auth.user + '>',
                                             to: recipients,
-                                            subject: 'Data Plot Notification',
+                                            subject: subj,
                                             attachments:{
                                                 filename: dataplot_credentials.filename,
                                                 path: dataplot_attachments
