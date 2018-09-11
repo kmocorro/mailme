@@ -64,7 +64,7 @@ module.exports = function(app){
                                 }
 
                                 let mail_settings = {
-                                    from: '"Automailer" <' +  mailer.mail.auth.user + '>',
+                                    from: '"Automailer" <f4automailer@sunpowercorp.com>',
                                     to: recipients,
                                     subject: '2D Reader Notification',
                                     html: '<p>Dear Engineers, <br><br> Found ' + mail_credentials.qty + ' consecutive invalid reading of wafers.  Please check your 2D Reader in ' + mail_credentials.tool + '. </p>'
@@ -143,7 +143,7 @@ module.exports = function(app){
 
                                     if(fs.existsSync(dataplot_attachments)){ // if File exists.
                                         let mail_settings = {
-                                            from: '"Automailer" <' +  mailer.mail.auth.user + '>',
+                                            from: '"Automailer" <f4automailer@sunpowercorp.com>',
                                             to: recipients,
                                             subject: 'Data Plot Notification',
                                             attachments:{
@@ -185,7 +185,7 @@ module.exports = function(app){
     
                                     if(fs.existsSync(dataplot_attachments)){ // if File exists.
                                         let mail_settings = {
-                                            from: '"Automailer" <' +  mailer.mail.auth.user + '>',
+                                            from: '"Automailer" < f4automailer@sunpowercorp.com >',
                                             to: recipients,
                                             subject: subj,
                                             attachments:{
